@@ -2,10 +2,17 @@ import smtplib
 import copy
 import random
 import csv
+import sys
 
-server = smtplib.SMTP("smtp.gmail.com:587")
-server.starttls()
-server.login("sender@example.com", "password")  # put in login and password
+DEBUG = True
+server = None
+
+
+# starts smtp server
+def start_server():
+    server = smtplib.SMTP("smtp.gmail.com:587")
+    server.starttls()
+    server.login("sender@example.com", "password")  # put in login and password
 
 
 # sends <msg> to <recp_email>
@@ -15,7 +22,8 @@ def send_mail(recp_email, msg):
 
 # tells <recp> their match is >match>
 def make_msg(recp, match):
-    msg = "{},\n\nYour secret Santa is {}\n\nHappy Christmas!".format(recp, match)
+    msg = "{},\n\nYour secret Santa is {}\n\nHappy Christmas!".format(recp,
+                                                                      match)
     return msg
 
 
@@ -29,10 +37,17 @@ def make_matches(santas):
                 return True
         return False
 
+    # suffle for randomness (and fun)
     santa_match = copy.deepcopy(santas)
     random.shuffle(santa_match)
-    while (have_themself(santas, santa_match)):
-        random.shuffle(santa_match)
+
+    # shift by one
+    s = santa_match.pop(0)
+    santa_match.append(s)
+
+    if have_themself(santas, santa_match):
+        print "Something went wrong...quitting"
+        sys.exit()
 
     return (santas, santa_match)
 
@@ -45,14 +60,21 @@ def get_santas(file):
 
 
 if __name__ == "__main__":
+    if not DEBUG:
+        start_server()
+
     senders = []
     senders_emails = []
     for ep in get_santas("emails.csv"):
-        senders.append(ep[0])
-        senders_emails.append(ep[1])
+        senders.append(ep[0].strip())
+        senders_emails.append(ep[1].strip())
 
     matches = make_matches(senders)
 
     for i in xrange(len(senders)):
         msg = make_msg(matches[0][i], matches[1][i])
-        send_mail(senders_emails[i], msg)
+        if DEBUG:
+            print senders_emails[i]
+            print msg + "\n\n"
+        else:
+            send_mail(senders_emails[i], msg)
