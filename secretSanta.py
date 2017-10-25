@@ -1,3 +1,4 @@
+from __future__ import print_function
 import smtplib
 import copy
 import random
@@ -6,6 +7,9 @@ import sys
 
 DEBUG = True
 server = None
+
+if DEBUG:
+    random.seed(0xdeadbeef)
 
 
 # starts smtp server
@@ -32,21 +36,20 @@ def make_msg(recp, match):
 def make_matches(santas):
 
     def have_themself(a, b):
-        for i in xrange(len(a)):
+        for i in range(len(a)):
             if (a[i] == b[i]):
+                print(a[i] + " has " + b[i])
                 return True
         return False
 
-    # suffle for randomness (and fun)
     santa_match = copy.deepcopy(santas)
-    random.shuffle(santa_match)
 
     # shift by one
     s = santa_match.pop(0)
     santa_match.append(s)
 
     if have_themself(santas, santa_match):
-        print "Something went wrong...quitting"
+        print("Something went wrong...quitting")
         sys.exit()
 
     return (santas, santa_match)
@@ -54,7 +57,7 @@ def make_matches(santas):
 
 # reads from a csv file <file> with names and emails
 def get_santas(file):
-    with open(file, "rb") as f:
+    with open(file, "r") as f:
         reader = csv.reader(f)
         return list(reader)
 
@@ -65,16 +68,18 @@ if __name__ == "__main__":
 
     senders = []
     senders_emails = []
-    for ep in get_santas("emails.csv"):
+    eps = get_santas("emails.csv")
+    random.shuffle(eps)  # shuffle for randomness
+    for ep in eps:
         senders.append(ep[0].strip())
         senders_emails.append(ep[1].strip())
 
     matches = make_matches(senders)
 
-    for i in xrange(len(senders)):
+    for i in range(len(senders)):
         msg = make_msg(matches[0][i], matches[1][i])
         if DEBUG:
-            print senders_emails[i]
-            print msg + "\n\n"
+            print(senders_emails[i])
+            print(msg + "\n\n")
         else:
             send_mail(senders_emails[i], msg)
