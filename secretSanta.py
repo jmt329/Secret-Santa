@@ -6,28 +6,40 @@ import csv
 import sys
 
 DEBUG = True
-server = None
+EMAIL = "email@example.com"
+PASSWORD = "password" # app specific password
 
 if DEBUG:
     random.seed(0xdeadbeef)
 
 
-# starts smtp server
+# starts smtp server and returns handle
 def start_server():
+    print("Starting server")
     server = smtplib.SMTP("smtp.gmail.com:587")
+    server.ehlo()
     server.starttls()
-    server.login("sender@example.com", "password")  # put in login and password
+    server.login(EMAIL, PASSWORD)
+    if server == None:
+        print("Server not opened")
+        sys.exit()
+    return server
 
 
-# sends <msg> to <recp_email>
-def send_mail(recp_email, msg):
-    server.sendmail("sender@example.com", recp_email, msg)  # change from email
+# sends <msg> to <recp_email> using smtp server <server>
+def send_mail(recp_email, msg, server):
+    server.sendmail(EMAIL, recp_email, msg)  # change from email
 
 
 # tells <recp> their match is >match>
-def make_msg(recp, match):
-    msg = "{},\n\nYour secret Santa is {}\n\nHappy Christmas!".format(recp,
-                                                                      match)
+def make_msg(recp, recp_email, match):
+    msg = "\r\n".join([
+        "From: {}".format(EMAIL),
+        "To: {}".format(recp_email),
+        "Subject: Test message",
+        "",
+        "{},\n\nYour secret Santa is {}\n\nMerry Christmas!".format(recp, match)
+    ])
     return msg
 
 
@@ -63,8 +75,9 @@ def get_santas(file):
 
 
 if __name__ == "__main__":
+    server = None
     if not DEBUG:
-        start_server()
+        server = start_server()
 
     senders = []
     senders_emails = []
@@ -77,9 +90,9 @@ if __name__ == "__main__":
     matches = make_matches(senders)
 
     for i in range(len(senders)):
-        msg = make_msg(matches[0][i], matches[1][i])
+        msg = make_msg(matches[0][i], senders_emails[i], matches[1][i])
         if DEBUG:
-            print(senders_emails[i])
             print(msg + "\n\n")
         else:
-            send_mail(senders_emails[i], msg)
+            send_mail(senders_emails[i], msg, server)
+    print("Done sending emails")
